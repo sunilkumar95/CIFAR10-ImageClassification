@@ -21,7 +21,6 @@ from src.utils import print_user_flags
 from src.data_utils import read_data
 
 from src.models import Hparams
-from src.models import softmax_classifier
 from src.models import conv_net
 from src.models import feed_forward_net
 
@@ -33,21 +32,25 @@ DEFINE_string("data_path", None, "Path to CIFAR-10 data")
 DEFINE_string("output_dir", "output", "Path to log folder")
 
 DEFINE_string("model_name", "",
-              "Name of the method. [softmax|feed_forward|conv]")
+              "Name of the method. [feed_forward|conv]")
 
 DEFINE_integer("log_every", 10, "How many steps to log")
+DEFINE_integer("num_classes", 10, "Number of classes")
+DEFINE_integer("train_batch_size", 256, "Size of training batches")
+DEFINE_integer("eval_batch_size", 100, "Size of testing batches")
+DEFINE_float("l2_reg", 1e-4, "L2 regularization rate")
+DEFINE_float("learning_rate", 0.05, "Learning rate")
+DEFINE_integer("train_steps", 6000, "Number of training steps")
 
 def get_ops(images, labels):
   """Builds the model."""
 
   print("-" * 80)
   print("Creating a '{0}' model".format(FLAGS.model_name))
-  if FLAGS.model_name == "softmax":
-    ops = softmax_classifier(images, labels)
-  elif FLAGS.model_name == "feed_forward":
-    ops = feed_forward_net(images, labels)
+  if FLAGS.model_name == "feed_forward":
+    ops = feed_forward_net(images, labels, FLAGS)
   elif FLAGS.model_name == "conv":
-    ops = conv_net(images, labels)
+    ops = conv_net(images, labels, FLAGS)
   else:
     raise ValueError("Unknown model name '{0}'".format(FLAGS.model_name))
 

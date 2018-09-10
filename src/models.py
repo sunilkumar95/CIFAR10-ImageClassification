@@ -19,6 +19,7 @@ class Hparams:
   eval_batch_size = 100
 
   learning_rate = 0.05
+
   # l2 regularization rate
   l2_reg = 1e-4
 
@@ -26,7 +27,7 @@ class Hparams:
   train_steps = 6000
 
 
-def conv_net(images, labels, *args, **kwargs):
+def conv_net(images, labels, flags, *args, **kwargs):
   """A conv net.
 
   Args:
@@ -47,9 +48,8 @@ def conv_net(images, labels, *args, **kwargs):
 
   """
 
-  hparams = Hparams()
-  images, labels = create_batches(images, labels, batch_size=hparams.batch_size,
-                                  eval_batch_size=hparams.eval_batch_size)
+  images, labels = create_batches(images, labels, batch_size=flags.train_batch_size,
+                                  eval_batch_size=flags.eval_batch_size)
 
   x_train, y_train = images["train"], labels["train"]
   x_valid, y_valid = images["valid"], labels["valid"]
@@ -61,7 +61,7 @@ def conv_net(images, labels, *args, **kwargs):
                 x_train.get_shape()[3].value)
 
   # create model parameters
-  def _get_logits(x, kernels, channels, l, flag, p, num_classes=hparams.num_classes):
+  def _get_logits(x, kernels, channels, l, flag, p, num_classes=flags.num_classes):
     # x, mean, var = tf.nn.fused_batch_norm(x, scale=[1.0, 1.0, 1.0], offset=[0.0, 0.0, 0.0], is_training=flag)
     layers = list(zip(kernels, channels))
     
@@ -117,7 +117,7 @@ def conv_net(images, labels, *args, **kwargs):
   test_logits = _get_logits(x_test, kernels, channels, l, flag=False, p=pdrop)
 
   # create train_op and global_step
-  beta = hparams.l2_reg
+  beta = flags.l2_reg
   global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name="global_step")
   log_probs = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=train_logits, 
                                                               labels=y_train)
@@ -128,7 +128,7 @@ def conv_net(images, labels, *args, **kwargs):
   train_loss = train_loss + beta*regularizer
 
   # Create the training op
-  optimizer = tf.train.AdagradOptimizer(learning_rate=hparams.learning_rate)
+  optimizer = tf.train.AdagradOptimizer(learning_rate=flags.learning_rate)
   train_op = optimizer.minimize(train_loss, global_step=global_step)
 
   # predictions and accuracies
@@ -154,7 +154,7 @@ def conv_net(images, labels, *args, **kwargs):
   return ops
 
 
-def feed_forward_net(images, labels, name='feed_forward_net', *args, **kwargs):
+def feed_forward_net(images, labels, flags, name='feed_forward_net', *args, **kwargs):
   """A feed_forward_net.
 
   Args:
@@ -174,9 +174,9 @@ def feed_forward_net(images, labels, name='feed_forward_net', *args, **kwargs):
        [test images]
 
   """
-  hparams = Hparams()
-  images, labels = create_batches(images, labels, batch_size=hparams.batch_size,
-                                  eval_batch_size=hparams.eval_batch_size)
+
+  images, labels = create_batches(images, labels, batch_size=flags.train_batch_size,
+                                  eval_batch_size=flags.eval_batch_size)
 
   x_train, y_train = images["train"], labels["train"]
   x_valid, y_valid = images["valid"], labels["valid"]
@@ -188,7 +188,7 @@ def feed_forward_net(images, labels, name='feed_forward_net', *args, **kwargs):
                 x_train.get_shape()[3].value)
 
   # create model parameters
-  def _get_logits(x, dims, flag, p, num_classes=hparams.num_classes):
+  def _get_logits(x, dims, flag, p, num_classes=flags.num_classes):
     x = tf.reshape(x, [-1, H*W*C])
     for layer, dim in enumerate(dims):
       currdim = x.get_shape()[-1].value
@@ -218,7 +218,7 @@ def feed_forward_net(images, labels, name='feed_forward_net', *args, **kwargs):
     logits=train_logits, labels=y_train)
   train_loss = tf.reduce_mean(log_probs)
   optimizer = tf.train.AdagradOptimizer(
-    learning_rate=hparams.learning_rate)
+    learning_rate=flags.learning_rate)
   train_op = optimizer.minimize(train_loss, global_step=global_step)
 
   # predictions and accuracies
@@ -242,4 +242,3 @@ def feed_forward_net(images, labels, name='feed_forward_net', *args, **kwargs):
     "test_acc": test_acc,
   }
   return ops
-
